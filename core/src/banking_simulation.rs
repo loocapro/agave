@@ -61,6 +61,7 @@ use {
         thread::{self, JoinHandle, sleep},
         time::{Duration, Instant, SystemTime},
     },
+    agave_tpu_plugin::NoFilter,
     thiserror::Error,
     tokio::sync::mpsc,
 };
@@ -853,7 +854,7 @@ impl BankingSimulator {
             None,
             bank_forks.clone(),
             None,
-            Arc::default(),
+            Arc::new(NoFilter),
         );
 
         let (&_slot, &raw_base_event_time) = freeze_time_by_slot

@@ -29,6 +29,7 @@ use {
         tpu::{Tpu, TpuSockets},
         tvu::{AlpenglowInitializationState, Tvu, TvuConfig, TvuSockets},
     },
+    agave_tpu_plugin::SetAccountFilter,
     agave_snapshots::{
         SnapshotInterval, snapshot_archive_info::SnapshotArchiveInfoGetter as _,
         snapshot_config::SnapshotConfig, snapshot_hash::StartingSnapshotHashes,
@@ -1692,7 +1693,7 @@ impl Validator {
             config.block_production_method.clone(),
             config.block_production_num_workers,
             config.block_production_scheduler_config.clone(),
-            config.filter_keys.clone(),
+            Arc::new(SetAccountFilter((*config.filter_keys).clone())),
             config.enable_block_production_forwarding,
             config.generator_config.clone(),
             key_notifiers.clone(),

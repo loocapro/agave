@@ -29,6 +29,7 @@ use {
         poh_controller::PohController, poh_recorder::PohRecorder,
         transaction_recorder::TransactionRecorder,
     },
+    agave_tpu_plugin::AccountFilter,
     solana_pubkey::Pubkey,
     solana_runtime::{
         bank::Bank, bank_forks::BankForks, prioritization_fee_cache::PrioritizationFeeCache,
@@ -37,7 +38,6 @@ use {
     solana_time_utils::AtomicInterval,
     solana_unified_scheduler_logic::SchedulingMode,
     std::{
-        collections::HashSet,
         num::{NonZeroU64, NonZeroUsize},
         ops::Deref,
         sync::{
@@ -335,7 +335,7 @@ pub struct BankingStage {
     bank_forks: Arc<RwLock<BankForks>>,
     committer: Committer,
     log_messages_bytes_limit: Option<usize>,
-    filter_keys: Arc<HashSet<Pubkey>>,
+    account_filter: Arc<dyn AccountFilter>,
     threads: FuturesUnordered<NamedTask<std::thread::Result<()>>>,
 }
 
@@ -356,7 +356,7 @@ impl BankingStage {
         log_messages_bytes_limit: Option<usize>,
         bank_forks: Arc<RwLock<BankForks>>,
         prioritization_fee_cache: Option<Arc<PrioritizationFeeCache>>,
-        filter_keys: Arc<HashSet<Pubkey>>,
+        account_filter: Arc<dyn AccountFilter>,
     ) -> BankingStageHandle {
         let committer = Committer::new(
             transaction_status_sender,
@@ -378,7 +378,7 @@ impl BankingStage {
             bank_forks,
             committer,
             log_messages_bytes_limit,
-            filter_keys,
+            account_filter,
             threads: FuturesUnordered::default(),
         };
 
@@ -507,7 +507,7 @@ impl BankingStage {
         let receive_and_buffer = TransactionViewReceiveAndBuffer {
             receiver: self.non_vote_receiver.clone(),
             sharable_banks: sharable_banks.clone(),
-            filter_keys: self.filter_keys.clone(),
+            account_filter: Arc::clone(&self.account_filter),
         };
 
         // Spawn vote worker.
@@ -598,9 +598,9 @@ impl BankingStage {
     fn spawn_vote_worker(&self) -> JoinHandle<()> {
         let vote_storage = VoteStorage::new(&self.bank_forks.read().unwrap().working_bank());
         let tpu_receiver =
-            VotePacketReceiver::new(self.tpu_vote_receiver.clone(), self.filter_keys.clone());
+            VotePacketReceiver::new(self.tpu_vote_receiver.clone(), Arc::clone(&self.account_filter));
         let gossip_receiver =
-            VotePacketReceiver::new(self.gossip_vote_receiver.clone(), self.filter_keys.clone());
+            VotePacketReceiver::new(self.gossip_vote_receiver.clone(), Arc::clone(&self.account_filter));
         let consumer = Consumer::new(
             self.committer.clone(),
             self.transaction_recorder.clone(),

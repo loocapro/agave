@@ -37,7 +37,8 @@ use {
     solana_svm_transaction::svm_message::SVMMessage,
     solana_transaction::sanitized::MessageHash,
     solana_transaction_error::TransactionError,
-    std::{collections::HashSet, sync::Arc, time::Instant},
+    agave_tpu_plugin::AccountFilter,
+    std::{sync::Arc, time::Instant},
 };
 
 #[derive(Debug)]
@@ -102,7 +103,7 @@ pub(crate) trait ReceiveAndBuffer {
 pub(crate) struct TransactionViewReceiveAndBuffer {
     pub receiver: BankingPacketReceiver,
     pub sharable_banks: SharableBanks,
-    pub filter_keys: Arc<HashSet<Pubkey>>,
+    pub account_filter: Arc<dyn AccountFilter>,
 }
 
 impl ReceiveAndBuffer for TransactionViewReceiveAndBuffer {
@@ -349,7 +350,7 @@ impl TransactionViewReceiveAndBuffer {
                             working_bank,
                             transaction_account_lock_limit,
                             enable_instruction_accounts_limit,
-                            &self.filter_keys,
+                            &*self.account_filter,
                         ) {
                             Ok(state) => Ok(state),
                             Err(
@@ -415,7 +416,7 @@ impl TransactionViewReceiveAndBuffer {
         working_bank: &Bank,
         transaction_account_lock_limit: usize,
         enable_instruction_accounts_limit: bool,
-        filter_keys: &HashSet<Pubkey>,
+        account_filter: &dyn AccountFilter,
     ) -> Result<TransactionViewState, PacketHandlingError> {
         let (view, deactivation_slot) = translate_to_runtime_view(
             bytes,
@@ -424,12 +425,7 @@ impl TransactionViewReceiveAndBuffer {
             enable_instruction_accounts_limit,
         )?;
 
-        if !filter_keys.is_empty()
-            && view
-                .account_keys()
-                .iter()
-                .any(|key| filter_keys.contains(key))
-        {
+        if account_filter.is_active() && view.account_keys().iter().any(|key| account_filter.is_blocked(key)) {
             return Err(PacketHandlingError::FilterKey);
         }
 
@@ -586,6 +582,7 @@ fn calculate_max_age(
 mod tests {
     use {
         super::*,
+        agave_tpu_plugin::{NoFilter, SetAccountFilter},
         crate::banking_stage::tests::create_slow_genesis_config,
         crossbeam_channel::{Receiver, unbounded},
         solana_hash::Hash,
@@ -602,7 +599,10 @@ mod tests {
         solana_system_interface::instruction as system_instruction,
         solana_system_transaction::transfer,
         solana_transaction::versioned::VersionedTransaction,
-        std::sync::{Arc, RwLock},
+        std::{
+            collections::HashSet,
+            sync::{Arc, RwLock},
+        },
     };
 
     fn test_bank_forks() -> (Arc<RwLock<BankForks>>, Keypair) {
@@ -625,17 +625,17 @@ mod tests {
         TransactionViewReceiveAndBuffer,
         TransactionViewStateContainer,
     ) {
-        setup_transaction_view_receive_and_buffer_with_filter_keys(
+        setup_transaction_view_receive_and_buffer_with_filter(
             receiver,
             bank_forks,
-            Arc::default(),
+            Arc::new(NoFilter),
         )
     }
 
-    fn setup_transaction_view_receive_and_buffer_with_filter_keys(
+    fn setup_transaction_view_receive_and_buffer_with_filter(
         receiver: Receiver<BankingPacketBatch>,
         bank_forks: Arc<RwLock<BankForks>>,
-        filter_keys: Arc<HashSet<Pubkey>>,
+        account_filter: Arc<dyn AccountFilter>,
     ) -> (
         TransactionViewReceiveAndBuffer,
         TransactionViewStateContainer,
@@ -643,7 +643,7 @@ mod tests {
         let receive_and_buffer = TransactionViewReceiveAndBuffer {
             receiver,
             sharable_banks: bank_forks.read().unwrap().sharable_banks(),
-            filter_keys,
+            account_filter,
         };
         let container = TransactionViewStateContainer::with_capacity(TEST_CONTAINER_CAPACITY);
         (receive_and_buffer, container)
@@ -1061,10 +1061,10 @@ mod tests {
         let (sender, receiver) = unbounded();
         let (bank_forks, mint_keypair) = test_bank_forks();
         let (mut receive_and_buffer, mut container) =
-            setup_transaction_view_receive_and_buffer_with_filter_keys(
+            setup_transaction_view_receive_and_buffer_with_filter(
                 receiver,
                 bank_forks.clone(),
-                Arc::new(HashSet::from([mint_keypair.pubkey()])),
+                Arc::new(SetAccountFilter(HashSet::from([mint_keypair.pubkey()]))),
             );
 
         let transaction = transfer(
@@ -1092,10 +1092,10 @@ mod tests {
         let (bank_forks, mint_keypair) = test_bank_forks();
         let filtered_key = Pubkey::new_unique();
         let (mut receive_and_buffer, mut container) =
-            setup_transaction_view_receive_and_buffer_with_filter_keys(
+            setup_transaction_view_receive_and_buffer_with_filter(
                 receiver,
                 bank_forks.clone(),
-                Arc::new(HashSet::from([filtered_key])),
+                Arc::new(SetAccountFilter(HashSet::from([filtered_key]))),
             );
 
         let transaction = transfer(
@@ -1122,10 +1122,10 @@ mod tests {
         let (sender, receiver) = unbounded();
         let (bank_forks, mint_keypair) = test_bank_forks();
         let (mut receive_and_buffer, mut container) =
-            setup_transaction_view_receive_and_buffer_with_filter_keys(
+            setup_transaction_view_receive_and_buffer_with_filter(
                 receiver,
                 bank_forks.clone(),
-                Arc::new(HashSet::from([Pubkey::new_unique()])),
+                Arc::new(SetAccountFilter(HashSet::from([Pubkey::new_unique()]))),
             );
 
         let transaction = transfer(

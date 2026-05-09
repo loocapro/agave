@@ -54,12 +54,13 @@ use {
         quic_socket::QuicSocket,
         streamer::StakedNodes,
     },
+    agave_tpu_plugin::AccountFilter,
     solana_turbine::{
         XdpSender,
         broadcast_stage::{BroadcastStage, BroadcastStageType},
     },
     std::{
-        collections::{HashMap, HashSet},
+        collections::HashMap,
         net::UdpSocket,
         num::NonZeroUsize,
         path::PathBuf,
@@ -142,7 +143,7 @@ impl Tpu {
         block_production_method: BlockProductionMethod,
         block_production_num_workers: NonZeroUsize,
         block_production_scheduler_config: SchedulerConfig,
-        filter_keys: Arc<HashSet<Pubkey>>,
+        account_filter: Arc<dyn AccountFilter>,
         enable_block_production_forwarding: bool,
         _generator_config: Option<GeneratorConfig>, /* vestigial code for replay invalidator */
         key_notifiers: Arc<RwLock<KeyUpdaters>>,
@@ -301,7 +302,7 @@ impl Tpu {
             log_messages_bytes_limit,
             bank_forks.clone(),
             prioritization_fee_cache,
-            filter_keys,
+            account_filter,
         );
 
         #[cfg(unix)]
