@@ -13,6 +13,7 @@ use {
         validator::BlockProductionMethod,
     },
     agave_banking_stage_ingress_types::BankingPacketBatch,
+    agave_tpu_plugin::NoFilter,
     agave_votor_messages::migration::MigrationStatus,
     assert_matches::assert_matches,
     bincode::deserialize_from,
@@ -61,7 +62,6 @@ use {
         thread::{self, JoinHandle, sleep},
         time::{Duration, Instant, SystemTime},
     },
-    agave_tpu_plugin::NoFilter,
     thiserror::Error,
     tokio::sync::mpsc,
 };

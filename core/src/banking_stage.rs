@@ -19,6 +19,7 @@ use {
         validator::BlockProductionMethod,
     },
     agave_banking_stage_ingress_types::BankingPacketReceiver,
+    agave_tpu_plugin::AccountFilter,
     crossbeam_channel::{Receiver, Sender, unbounded},
     futures::{StreamExt, stream::FuturesUnordered},
     histogram::Histogram,
@@ -29,7 +30,6 @@ use {
         poh_controller::PohController, poh_recorder::PohRecorder,
         transaction_recorder::TransactionRecorder,
     },
-    agave_tpu_plugin::AccountFilter,
     solana_pubkey::Pubkey,
     solana_runtime::{
         bank::Bank, bank_forks::BankForks, prioritization_fee_cache::PrioritizationFeeCache,
@@ -323,7 +323,7 @@ impl LikeClusterInfo for Arc<ClusterInfo> {
     }
 }
 
-pub struct BankingStage {
+pub struct BankingStage<F: AccountFilter> {
     banking_shutdown_signal: CancellationToken,
     worker_exit_signal: Arc<AtomicBool>,
     banking_control_receiver: mpsc::Receiver<BankingControlMsg>,
@@ -335,11 +335,11 @@ pub struct BankingStage {
     bank_forks: Arc<RwLock<BankForks>>,
     committer: Committer,
     log_messages_bytes_limit: Option<usize>,
-    account_filter: Arc<dyn AccountFilter>,
+    account_filter: Arc<F>,
     threads: FuturesUnordered<NamedTask<std::thread::Result<()>>>,
 }
 
-impl BankingStage {
+impl<F: AccountFilter + 'static> BankingStage<F> {
     #[allow(clippy::too_many_arguments)]
     pub fn new_num_threads(
         block_production_method: BlockProductionMethod,
@@ -356,7 +356,7 @@ impl BankingStage {
         log_messages_bytes_limit: Option<usize>,
         bank_forks: Arc<RwLock<BankForks>>,
         prioritization_fee_cache: Option<Arc<PrioritizationFeeCache>>,
-        account_filter: Arc<dyn AccountFilter>,
+        account_filter: Arc<F>,
     ) -> BankingStageHandle {
         let committer = Committer::new(
             transaction_status_sender,
@@ -651,7 +651,7 @@ mod external {
         tpu_to_pack::BankingPacketReceivers,
     };
 
-    impl BankingStage {
+    impl<F: AccountFilter + 'static> BankingStage<F> {
         pub(super) fn spawn_external(
             &self,
             AgaveSession {
@@ -820,6 +820,7 @@ where
 mod tests {
     use {
         super::*,
+        agave_tpu_plugin::NoFilter,
         crate::{
             banking_trace::{BankingTracer, Channels},
             validator::SchedulerPacing,
@@ -910,7 +911,7 @@ mod tests {
             None,
             bank_forks,
             None,
-            Arc::default(),
+            Arc::new(NoFilter),
         );
         drop(non_vote_sender);
         drop(tpu_vote_sender);
@@ -971,7 +972,7 @@ mod tests {
             None,
             bank_forks, // keep a local-copy of bank-forks so worker threads do not lose weak access to bank-forks
             None,
-            Arc::default(),
+            Arc::new(NoFilter),
         );
 
         // good tx, and no verify
@@ -1126,7 +1127,7 @@ mod tests {
                 None,
                 bank_forks,
                 None,
-                Arc::default(),
+                Arc::new(NoFilter),
             );
 
             // wait for banking_stage to eat the packets
@@ -1280,7 +1281,7 @@ mod tests {
             None,
             bank_forks,
             None,
-            Arc::default(),
+            Arc::new(NoFilter),
         );
 
         let keypairs = (0..100).map(|_| Keypair::new()).collect_vec();

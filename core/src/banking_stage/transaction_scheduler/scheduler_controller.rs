@@ -441,6 +441,7 @@ impl CostPacer {
 mod tests {
     use {
         super::*,
+        agave_tpu_plugin::NoFilter,
         crate::banking_stage::{
             TransactionViewReceiveAndBuffer,
             consumer::{RetryableIndex, TARGET_NUM_TRANSACTIONS_PER_BATCH},
@@ -488,11 +489,11 @@ mod tests {
     fn test_create_transaction_view_receive_and_buffer(
         receiver: BankingPacketReceiver,
         bank_forks: Arc<RwLock<BankForks>>,
-    ) -> TransactionViewReceiveAndBuffer {
+    ) -> TransactionViewReceiveAndBuffer<NoFilter> {
         TransactionViewReceiveAndBuffer {
             receiver,
             sharable_banks: bank_forks.read().unwrap().sharable_banks(),
-            filter_keys: Arc::default(),
+            account_filter: Arc::new(NoFilter),
         }
     }
 

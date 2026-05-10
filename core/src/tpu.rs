@@ -23,6 +23,7 @@ use {
         tpu_entry_notifier::TpuEntryNotifier,
         validator::{BlockProductionMethod, GeneratorConfig},
     },
+    agave_tpu_plugin::AccountFilter,
     agave_votor::event::VotorEventSender,
     crossbeam_channel::{Receiver, bounded, unbounded},
     solana_clock::Slot,
@@ -54,7 +55,6 @@ use {
         quic_socket::QuicSocket,
         streamer::StakedNodes,
     },
-    agave_tpu_plugin::AccountFilter,
     solana_turbine::{
         XdpSender,
         broadcast_stage::{BroadcastStage, BroadcastStageType},
@@ -105,7 +105,7 @@ pub struct Tpu {
 
 impl Tpu {
     #[allow(clippy::too_many_arguments)]
-    pub fn new_with_client(
+    pub fn new_with_client<F: AccountFilter + 'static>(
         cluster_info: &Arc<ClusterInfo>,
         poh_recorder: &Arc<RwLock<PohRecorder>>,
         transaction_recorder: TransactionRecorder,
@@ -143,7 +143,7 @@ impl Tpu {
         block_production_method: BlockProductionMethod,
         block_production_num_workers: NonZeroUsize,
         block_production_scheduler_config: SchedulerConfig,
-        account_filter: Arc<dyn AccountFilter>,
+        account_filter: Arc<F>,
         enable_block_production_forwarding: bool,
         _generator_config: Option<GeneratorConfig>, /* vestigial code for replay invalidator */
         key_notifiers: Arc<RwLock<KeyUpdaters>>,

@@ -23,7 +23,6 @@ use {
     solana_clock::{Epoch, Slot},
     solana_cost_model::cost_model::CostModel,
     solana_message::v0::LoadedAddresses,
-    solana_pubkey::Pubkey,
     solana_runtime::{
         bank::Bank,
         bank_forks::{BankPair, SharableBanks},
@@ -100,13 +99,13 @@ pub(crate) trait ReceiveAndBuffer {
     ) -> Result<ReceivingStats, DisconnectedError>;
 }
 
-pub(crate) struct TransactionViewReceiveAndBuffer {
+pub(crate) struct TransactionViewReceiveAndBuffer<F: AccountFilter> {
     pub receiver: BankingPacketReceiver,
     pub sharable_banks: SharableBanks,
-    pub account_filter: Arc<dyn AccountFilter>,
+    pub account_filter: Arc<F>,
 }
 
-impl ReceiveAndBuffer for TransactionViewReceiveAndBuffer {
+impl<F: AccountFilter> ReceiveAndBuffer for TransactionViewReceiveAndBuffer<F> {
     type Transaction = RuntimeTransaction<ResolvedTransactionView<SharedBytes>>;
     type Container = TransactionViewStateContainer;
 
@@ -230,7 +229,7 @@ pub(crate) enum PacketHandlingError {
     FilterKey,
 }
 
-impl TransactionViewReceiveAndBuffer {
+impl<F: AccountFilter> TransactionViewReceiveAndBuffer<F> {
     /// Return number of received packets.
     fn handle_packet_batch_message(
         &mut self,
@@ -410,13 +409,13 @@ impl TransactionViewReceiveAndBuffer {
         }
     }
 
-    fn try_handle_packet(
+    fn try_handle_packet<G: AccountFilter>(
         bytes: SharedBytes,
         root_bank: &Bank,
         working_bank: &Bank,
         transaction_account_lock_limit: usize,
         enable_instruction_accounts_limit: bool,
-        account_filter: &dyn AccountFilter,
+        account_filter: &G,
     ) -> Result<TransactionViewState, PacketHandlingError> {
         let (view, deactivation_slot) = translate_to_runtime_view(
             bytes,
@@ -622,7 +621,7 @@ mod tests {
         receiver: Receiver<BankingPacketBatch>,
         bank_forks: Arc<RwLock<BankForks>>,
     ) -> (
-        TransactionViewReceiveAndBuffer,
+        TransactionViewReceiveAndBuffer<NoFilter>,
         TransactionViewStateContainer,
     ) {
         setup_transaction_view_receive_and_buffer_with_filter(
@@ -632,12 +631,12 @@ mod tests {
         )
     }
 
-    fn setup_transaction_view_receive_and_buffer_with_filter(
+    fn setup_transaction_view_receive_and_buffer_with_filter<F: AccountFilter>(
         receiver: Receiver<BankingPacketBatch>,
         bank_forks: Arc<RwLock<BankForks>>,
-        account_filter: Arc<dyn AccountFilter>,
+        account_filter: Arc<F>,
     ) -> (
-        TransactionViewReceiveAndBuffer,
+        TransactionViewReceiveAndBuffer<F>,
         TransactionViewStateContainer,
     ) {
         let receive_and_buffer = TransactionViewReceiveAndBuffer {

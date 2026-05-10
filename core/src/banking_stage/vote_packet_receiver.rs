@@ -11,7 +11,6 @@ use {
     crossbeam_channel::RecvTimeoutError,
     solana_measure::{measure::Measure, measure_us},
     agave_tpu_plugin::AccountFilter,
-    solana_pubkey::Pubkey,
     std::{
         num::Saturating,
         sync::{Arc, atomic::Ordering},
@@ -19,15 +18,15 @@ use {
     },
 };
 
-pub struct VotePacketReceiver {
+pub struct VotePacketReceiver<F: AccountFilter> {
     banking_packet_receiver: BankingPacketReceiver,
-    account_filter: Arc<dyn AccountFilter>,
+    account_filter: Arc<F>,
 }
 
-impl VotePacketReceiver {
+impl<F: AccountFilter> VotePacketReceiver<F> {
     pub fn new(
         banking_packet_receiver: BankingPacketReceiver,
-        account_filter: Arc<dyn AccountFilter>,
+        account_filter: Arc<F>,
     ) -> Self {
         Self {
             banking_packet_receiver,
@@ -288,9 +287,9 @@ mod tests {
         std::collections::HashSet,
     };
 
-    fn receive_vote_with_filter(
+    fn receive_vote_with_filter<F: AccountFilter>(
         keypairs: &ValidatorVoteKeypairs,
-        account_filter: Arc<dyn AccountFilter>,
+        account_filter: Arc<F>,
     ) -> VoteStorage {
         let vote_packet = packet_from_slots(vec![(1, 1)], keypairs, None);
         let (sender, receiver) = unbounded();
