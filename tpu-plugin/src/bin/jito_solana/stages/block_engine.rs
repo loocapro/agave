@@ -1,11 +1,12 @@
 use {
     super::PacketBundle,
+    super::super::hooks::BlockEngineConfig,
     agave_tpu_plugin::{LifecycleStage, TpuStage},
     std::{
         sync::{
             Arc,
             atomic::{AtomicBool, Ordering},
-            mpsc::Sender,
+            mpsc::SyncSender,
         },
         thread::{self, JoinHandle},
     },
@@ -15,10 +16,16 @@ pub struct BlockEngineStage {
     abort_signal: Arc<AtomicBool>,
     thread: thread::Thread,
     handle: Option<JoinHandle<()>>,
+    #[allow(dead_code)]
+    config: BlockEngineConfig,
 }
 
 impl BlockEngineStage {
-    pub fn spawn(bundle_sender: Sender<PacketBundle>) -> Self {
+    pub fn spawn(
+        config: BlockEngineConfig,
+        bundle_sender: SyncSender<PacketBundle>,
+        _exit: Arc<AtomicBool>,
+    ) -> Self {
         let abort_signal = Arc::new(AtomicBool::new(false));
         let signal = Arc::clone(&abort_signal);
         let handle = thread::Builder::new()
@@ -31,7 +38,7 @@ impl BlockEngineStage {
             })
             .expect("jitoBlockEngineStage spawn failed");
         let thread = handle.thread().clone();
-        Self { abort_signal, thread, handle: Some(handle) }
+        Self { abort_signal, thread, handle: Some(handle), config }
     }
 }
 

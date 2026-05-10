@@ -5,7 +5,7 @@ use {
         sync::{
             Arc,
             atomic::{AtomicBool, Ordering},
-            mpsc::{Receiver, Sender},
+            mpsc::{Receiver, SyncSender},
         },
         thread::{self, JoinHandle},
     },
@@ -17,7 +17,11 @@ pub struct BundleSigverifyStage {
 }
 
 impl BundleSigverifyStage {
-    pub fn spawn(receiver: Receiver<PacketBundle>, verified_sender: Sender<PacketBundle>) -> Self {
+    pub fn spawn(
+        receiver: Receiver<PacketBundle>,
+        verified_sender: SyncSender<PacketBundle>,
+        _exit: Arc<AtomicBool>,
+    ) -> Self {
         let abort_signal = Arc::new(AtomicBool::new(false));
         let signal = Arc::clone(&abort_signal);
         let handle = thread::Builder::new()

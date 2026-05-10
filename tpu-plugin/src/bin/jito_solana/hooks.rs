@@ -11,6 +11,12 @@ use {
     },
 };
 
+#[allow(dead_code)]
+pub struct BlockEngineConfig {
+    pub block_engine_url: String,
+    pub trust_packets: bool,
+}
+
 // The 8 mainnet Jito tip accounts (https://jito.network/docs/tip-accounts)
 pub const TIP_ACCOUNTS: [&str; 8] = [
     "ADaUMid9yfUytqMBgopwjb2DTLSokTSzL1zt6iGPaS49",

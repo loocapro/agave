@@ -1,6 +1,6 @@
 use {
     super::PacketBundle,
-    super::super::hooks::BundleLocks,
+    super::super::hooks::{BundleLocks, TipManager},
     agave_tpu_plugin::{LifecycleStage, TpuStage},
     std::{
         sync::{
@@ -18,10 +18,18 @@ pub struct BundleStage {
     // Shared with Consumer's WriteLockView; write path calls locks.lock/unlock around each bundle.
     #[allow(dead_code)]
     locks: Arc<BundleLocks>,
+    // Shared with BankingHooks::tip_processor; one Arc<TipManager> across both paths.
+    #[allow(dead_code)]
+    tip_manager: Arc<TipManager>,
 }
 
 impl BundleStage {
-    pub fn spawn(receiver: Receiver<PacketBundle>, locks: Arc<BundleLocks>) -> Self {
+    pub fn spawn(
+        receiver: Receiver<PacketBundle>,
+        locks: Arc<BundleLocks>,
+        tip_manager: Arc<TipManager>,
+        _exit: Arc<AtomicBool>,
+    ) -> Self {
         let abort_signal = Arc::new(AtomicBool::new(false));
         let signal = Arc::clone(&abort_signal);
         let handle = thread::Builder::new()
@@ -35,7 +43,7 @@ impl BundleStage {
                 }
             })
             .expect("jitoBundleStage spawn failed");
-        Self { abort_signal, handle: Some(handle), locks }
+        Self { abort_signal, handle: Some(handle), locks, tip_manager }
     }
 }
 
