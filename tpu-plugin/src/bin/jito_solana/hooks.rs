@@ -33,8 +33,6 @@ pub fn tip_account_pubkeys() -> impl Iterator<Item = Pubkey> {
     TIP_ACCOUNTS.iter().map(|s| s.parse().unwrap())
 }
 
-// --- AccountFilter ---
-
 pub struct BundleFilter(HashSet<Pubkey>);
 
 impl BundleFilter {
@@ -48,8 +46,6 @@ impl AccountFilter for BundleFilter {
     fn is_blocked(&self, pubkey: &Pubkey) -> bool { self.0.contains(pubkey) }
 }
 
-// --- WriteLockView / ReadLockView ---
-
 pub struct BundleLocks(Arc<RwLock<HashSet<Pubkey>>>);
 
 impl BundleLocks {
@@ -57,7 +53,6 @@ impl BundleLocks {
         Self(Arc::new(RwLock::new(HashSet::new())))
     }
 
-    // BundleStage write path — called per-bundle during execution, not simulated here.
     #[allow(dead_code)]
     pub fn lock(&self, pubkey: Pubkey) { self.0.write().unwrap().insert(pubkey); }
 
@@ -77,8 +72,6 @@ impl ReadLockView for BundleLocks {
 
 impl BundleAccountLockView for BundleLocks {}
 
-// --- YieldControl ---
-
 pub struct BundleYield(Arc<AtomicBool>);
 
 impl BundleYield {
@@ -89,8 +82,6 @@ impl YieldControl for BundleYield {
     #[inline(always)]
     fn should_yield(&self) -> bool { self.0.load(Ordering::Acquire) }
 }
-
-// --- TipProcessor ---
 
 pub struct TipManager {
     #[allow(dead_code)]
@@ -116,8 +107,6 @@ impl TipProcessor for TipManager {
         Ok(())
     }
 }
-
-// --- BatchCommitPolicy ---
 
 pub struct BundleBatchPolicy;
 

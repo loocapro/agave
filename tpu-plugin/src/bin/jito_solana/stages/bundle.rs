@@ -15,10 +15,8 @@ use {
 pub struct BundleStage {
     abort_signal: Arc<AtomicBool>,
     handle: Option<JoinHandle<()>>,
-    // Shared with Consumer's WriteLockView; write path calls locks.lock/unlock around each bundle.
     #[allow(dead_code)]
     locks: Arc<BundleLocks>,
-    // Shared with BankingHooks::tip_processor; one Arc<TipManager> across both paths.
     #[allow(dead_code)]
     tip_manager: Arc<TipManager>,
 }

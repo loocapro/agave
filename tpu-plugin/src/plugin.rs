@@ -6,8 +6,7 @@ use {
     std::sync::Arc,
 };
 
-/// Stages are aborted in reverse push order at shutdown — push order is the
-/// public contract.
+// Stages are aborted in reverse push order — push order is the public contract.
 #[non_exhaustive]
 pub struct TpuPlugin<F = NoFilter>
 where
@@ -29,9 +28,7 @@ impl Default for TpuPlugin<NoFilter> {
     }
 }
 
-/// Banking hook points wired into Consumer and the scheduler receive paths.
-/// Generic over `F` so `TpuPlugin<NoFilter>` monomorphises to zero-cost
-/// filter checks on the vanilla path.
+// F = NoFilter monomorphises filter checks to zero cost on the vanilla path.
 #[non_exhaustive]
 pub struct BankingHooks<F = NoFilter>
 where
@@ -68,8 +65,7 @@ impl Default for BankingHooks<NoFilter> {
     }
 }
 
-/// Cloneable bag of hook handles passed between composition layers.
-/// Lives here so downstream extension crates never import each other.
+// Lives here so downstream extension crates never need to import each other.
 #[derive(Clone)]
 #[non_exhaustive]
 pub struct TpuHandles {

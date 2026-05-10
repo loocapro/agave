@@ -1,15 +1,5 @@
 //! Extension traits for plugging custom stages into the Agave TPU pipeline.
-//!
-//! # Extension points
-//!
-//! - [`TpuPlugin`] — the bundle a fork installs at startup: extra pipeline stages plus
-//!   [`BankingHooks`]. Vanilla Agave uses [`TpuPlugin::default`], which is zero-cost.
-//!
-//! - [`BankingHooks`] — behavioral overrides injected into the banking stage: yield
-//!   control, account filtering, lock visibility, tip processing, and batch commit policy.
-//!
-//! All hook traits have null implementations ([`NoFilter`], [`NoYield`], [`NoLocks`],
-//! [`NoTip`], [`StandardCommit`]) that compile away on the vanilla path via monomorphisation.
+//! Null implementations ([`NoFilter`], [`NoYield`], etc.) compile away on the vanilla path.
 
 mod defaults;
 mod plugin;
