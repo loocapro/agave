@@ -9,6 +9,7 @@ pub mod deploy;
 pub mod execution_budget;
 pub mod invoke_context;
 pub mod mem_pool;
+pub mod pda;
 pub mod memory;
 pub mod memory_context;
 pub mod program_cache;

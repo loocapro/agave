@@ -53,7 +53,8 @@ solana-last-restart-slot = { workspace = true, features = ["wincode"] }
 solana-loader-v3-interface = { workspace = true }
 solana-message = { workspace = true, optional = true }
 solana-program-entrypoint = { workspace = true }
-solana-pubkey = { workspace = true }
+solana-pubkey = { workspace = true, features = ["curve25519"] }
+solana-sha256-hasher = { workspace = true }
 solana-rent = { workspace = true, features = ["wincode"] }
 solana-sbpf = { workspace = true, features = ["jit"] }
 solana-sdk-ids = { workspace = true }

@@ -812,7 +812,7 @@ impl BuiltinFunctionDefinition<InvokeContext<'_, '_>> for SyscallCreateProgramAd
             abi,
         )?;
 
-        let Ok(new_address) = Pubkey::create_program_address(&seeds, program_id) else {
+        let Ok(new_address) = solana_program_runtime::pda::create_program_address(&seeds, program_id) else {
             return Ok(1);
         };
         translate_mut!(
@@ -859,7 +859,7 @@ impl BuiltinFunctionDefinition<InvokeContext<'_, '_>> for SyscallTryFindProgramA
                 seeds_with_bump.push(&bump_seed);
 
                 if let Ok(new_address) =
-                    Pubkey::create_program_address(&seeds_with_bump, program_id)
+                    solana_program_runtime::pda::create_program_address(&seeds_with_bump, program_id)
                 {
                     translate_mut!(
                         invoke_context,
