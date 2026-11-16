@@ -633,8 +633,8 @@ lto = "fat"
 codegen-units = 1
 
 [patch.crates-io]
-# solana-sbpf branch loocapro/store-watermark: MemoryRegion::dirty_prefix_len
-solana-sbpf = { git = "https://github.com/loocapro/sbpf", rev = "6dcc628c01d3b6adb2dc9d4c02e5db92be8e870c" }
+# solana-sbpf branch loocapro/store-watermark: MemoryRegion::stores_end
+solana-sbpf = { git = "https://github.com/loocapro/sbpf", rev = "6fb20b0190480181ded7a150d189c78f92ac67d9" }
 blstrs = { git = "https://github.com/anza-xyz/blstrs", rev = "a1faffa3420bdaf4102425c43f00cdd815d4f145" }
 # for details, see https://github.com/anza-xyz/crossbeam/commit/5ee1c6ec671d94db14ed9238eb99e59a84555aad
 crossbeam-epoch = { git = "https://github.com/anza-xyz/crossbeam", rev = "5ee1c6ec671d94db14ed9238eb99e59a84555aad" }

@@ -10363,7 +10363,7 @@ checksum = "dcf09694a0fc14e5ffb18f9b7b7c0f15ecb6eac5b5610bf76a1853459d19daf9"
 [[package]]
 name = "solana-sbpf"
 version = "0.28.0"
-source = "git+https://github.com/loocapro/sbpf?rev=6dcc628c01d3b6adb2dc9d4c02e5db92be8e870c#6dcc628c01d3b6adb2dc9d4c02e5db92be8e870c"
+source = "git+https://github.com/loocapro/sbpf?rev=6fb20b0190480181ded7a150d189c78f92ac67d9#6fb20b0190480181ded7a150d189c78f92ac67d9"
 dependencies = [
  "byteorder",
  "combine 3.8.1",
