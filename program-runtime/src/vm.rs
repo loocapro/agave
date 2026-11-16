@@ -105,6 +105,15 @@ unsafe fn configure_program_regions<C: ContextObject>(
         .map_err(|err| Box::new(err) as Box<dyn std::error::Error>)
 }
 
+/// Bytes from the start of the pooled buffer mapped at `vm_addr` that the program may have written
+fn dirty_prefix_len(mapping: &MemoryMapping, vm_addr: u64) -> usize {
+    mapping
+        .get_regions()
+        .iter()
+        .find(|region| region.vm_addr_range().start == vm_addr)
+        .map_or(usize::MAX, |region| region.dirty_prefix_len() as usize)
+}
+
 /// Create the SBF virtual machine
 #[macro_export]
 macro_rules! create_vm {
@@ -343,9 +352,20 @@ pub fn execute<'a, 'b: 'a>(
         let (compute_units_consumed, result) =
             vm.execute_program(executable, &mut execution_mode, &mut call_frames);
         let register_trace = std::mem::take(&mut vm.register_trace);
+        let (stack_dirty_len, heap_dirty_len) = vm
+            .context()
+            .memory_contexts
+            .memory_mapping()
+            .map(|mapping| {
+                (
+                    dirty_prefix_len(mapping, ebpf::MM_STACK_START),
+                    dirty_prefix_len(mapping, ebpf::MM_HEAP_START),
+                )
+            })
+            .unwrap_or((usize::MAX, usize::MAX));
         MEMORY_POOL.with_borrow_mut(|memory_pool| {
-            memory_pool.put_stack(stack);
-            memory_pool.put_heap(heap, mapped_heap_len);
+            memory_pool.put_stack(stack, stack_dirty_len);
+            memory_pool.put_heap(heap, mapped_heap_len.min(heap_dirty_len));
             memory_pool.put_call_frames(call_frames);
             debug_assert!(memory_pool.stack_len() <= MAX_INSTRUCTION_STACK_DEPTH_SIMD_0268);
             debug_assert!(memory_pool.heap_len() <= MAX_INSTRUCTION_STACK_DEPTH_SIMD_0268);

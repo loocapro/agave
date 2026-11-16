@@ -133,9 +133,12 @@ impl VmMemoryPool {
             .unwrap_or_else(|| AlignedMemory::zero_filled(size))
     }
 
-    pub fn put_stack(&mut self, stack: AlignedMemory<{ HOST_ALIGN }>) -> bool {
-        let len = stack.len();
-        self.stack.put(stack, len)
+    pub fn put_stack(
+        &mut self,
+        stack: AlignedMemory<{ HOST_ALIGN }>,
+        dirty_prefix_len: usize,
+    ) -> bool {
+        self.stack.put(stack, dirty_prefix_len)
     }
 
     pub fn get_heap(&mut self, heap_size: u32) -> AlignedMemory<{ HOST_ALIGN }> {
