@@ -105,6 +105,13 @@ unsafe fn configure_program_regions<C: ContextObject>(
         .map_err(|err| Box::new(err) as Box<dyn std::error::Error>)
 }
 
+/// How far the program wrote into the pooled buffer mapped at `vm_addr`; full length when unknown
+fn stores_end(mapping: Option<&MemoryMapping>, vm_addr: u64) -> usize {
+    mapping
+        .and_then(|mapping| mapping.find_region(vm_addr))
+        .map_or(usize::MAX, |(_, region)| region.stores_end() as usize)
+}
+
 /// Create the SBF virtual machine
 #[macro_export]
 macro_rules! create_vm {
@@ -343,9 +350,13 @@ pub fn execute<'a, 'b: 'a>(
         let (compute_units_consumed, result) =
             vm.execute_program(executable, &mut execution_mode, &mut call_frames);
         let register_trace = std::mem::take(&mut vm.register_trace);
+        let mapping = vm.context().memory_contexts.memory_mapping().ok();
         MEMORY_POOL.with_borrow_mut(|memory_pool| {
-            memory_pool.put_stack(stack);
-            memory_pool.put_heap(heap, mapped_heap_len);
+            memory_pool.put_stack(stack, stores_end(mapping, ebpf::MM_STACK_START));
+            memory_pool.put_heap(
+                heap,
+                mapped_heap_len.min(stores_end(mapping, ebpf::MM_HEAP_START)),
+            );
             memory_pool.put_call_frames(call_frames);
             debug_assert!(memory_pool.stack_len() <= MAX_INSTRUCTION_STACK_DEPTH_SIMD_0268);
             debug_assert!(memory_pool.heap_len() <= MAX_INSTRUCTION_STACK_DEPTH_SIMD_0268);
